@@ -2,8 +2,40 @@ import * as Yup from 'yup';
 import { startOfHour, parseISO, isBefore } from 'date-fns';
 import Appointment from '../models/Appointment';
 import User from '../models/User';
+import File from '../models/File';
 
 class AppointmentController {
+  async index(req, res) {
+    // Listing of appointments sorted by date and not canceled,
+    // having their attributes necessary according to the business rule.
+
+    const { page = 1, perPage = 20 } = req.query;
+
+    const appointments = await Appointment.findAll({
+      where: { user_id: req.userId, canceled: null },
+      order: ['date'],
+      limit: perPage, // limit paginate
+      offset: (page - 1) * perPage, // how many will skip paging
+      attributes: ['id', 'date'],
+      include: [
+        {
+          model: User,
+          as: 'provider',
+          attributes: ['id', 'name', 'email'],
+          include: [
+            {
+              model: File,
+              as: 'avatar',
+              attributes: ['name', 'path', 'url'],
+            },
+          ],
+        },
+      ],
+    });
+
+    return res.json(appointments);
+  }
+
   async store(req, res) {
     const schema = Yup.object().shape({
       provider_id: Yup.number().required(),
