@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import passport from 'passport';
 import authMiddleare from './app/middlewares/auth';
 import multerConfig from './config/multer';
 import UserController from './app/controllers/UserController';
@@ -11,11 +12,18 @@ import ScheduleController from './app/controllers/ScheduleController';
 import NotificationController from './app/controllers/NotificationController';
 import AvailableController from './app/controllers/AvailableController';
 
+const passportSignIn = passport.authenticate('local', { session: false });
+
 const routes = new Router();
 const upload = multer(multerConfig);
 
 routes.post('/users', UserController.store);
 routes.post('/session', SessionController.store);
+
+routes.post(
+  '/oauth/google',
+  passport.authenticate('googleToken', { session: false })
+);
 
 routes.use(authMiddleare);
 
