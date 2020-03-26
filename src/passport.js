@@ -1,14 +1,20 @@
 import passport from 'passport';
-import GooglePlusTokenStrategy from 'passport-google-plus-token';
+import User from './app/models/User';
+
+const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 passport.use(
-  'googleToken',
-  new GooglePlusTokenStrategy(
+  new GoogleStrategy(
     {
       clientID:
-        '798089071925-isfr95efpiugo2tb1o8tmr37dbl0ok95.apps.googleusercontent.com',
-      clientSecret: 'BMxnGNeJPF3aJhDbPWjLsHVW',
+        '798089071925-df9qm2o3aadrr8n6rogj3obfcfen36dl.apps.googleusercontent.com',
+      clientSecret: 'gR5LuX6Qk7G_7GPq8TPpo5Kq',
+      callbackURL: 'http://www.example.com/auth/google/callback',
     },
-    async (accessToken, refreshToken, profile, done) => {}
+    async function(accessToken, refreshToken, profile, done) {
+      await User.create({ googleId: profile.id }, function(err, user) {
+        return done(err, user);
+      });
+    }
   )
 );

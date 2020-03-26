@@ -12,8 +12,6 @@ import ScheduleController from './app/controllers/ScheduleController';
 import NotificationController from './app/controllers/NotificationController';
 import AvailableController from './app/controllers/AvailableController';
 
-const passportSignIn = passport.authenticate('local', { session: false });
-
 const routes = new Router();
 const upload = multer(multerConfig);
 
@@ -23,6 +21,10 @@ routes.post('/session', SessionController.store);
 routes.post(
   '/oauth/google',
   passport.authenticate('googleToken', { session: false })
+);
+routes.get(
+  '/auth/google',
+  passport.authenticate('google', { scope: ['profile'] })
 );
 
 routes.use(authMiddleare);
