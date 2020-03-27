@@ -1,12 +1,11 @@
-import * as Yup from 'yup';
-import { startOfHour, parseISO, isBefore, format, subHours } from 'date-fns';
-import pt from 'date-fns/locale/pt';
+import { isBefore, subHours } from 'date-fns';
 import Appointment from '../models/Appointment';
 import User from '../models/User';
 import File from '../models/File';
-import Notification from '../schemas/Notification';
 import Queue from '../../lib/Queue';
 import CancelationMail from '../jobs/CancellationMail';
+
+import CreateAppointmentService from '../services/CreateAppointmentService';
 
 class AppointmentController {
   async index(req, res) {
@@ -41,78 +40,12 @@ class AppointmentController {
   }
 
   async store(req, res) {
-    const schema = Yup.object().shape({
-      provider_id: Yup.number().required(),
-      date: Yup.date().required(),
-    });
-
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Validation fails' });
-    }
-
     const { provider_id, date } = req.body;
 
-    // validates whether you are a service provider
-
-    const isProvider = await User.findOne({
-      // -> search within the user model a record where you have these conditions
-      where: {
-        id: provider_id,
-        provider: true,
-      },
-    });
-
-    if (!isProvider) {
-      return res.status(401).json({ error: 'Provider does not exist' });
-    }
-
-    // if (provider_id === req.userId) {
-    //   return res
-    //     .status(401)
-    //     .json({ error: 'A provider cannot schedule for himself' });
-    // }
-
-    const hourStart = startOfHour(parseISO(date)); // parseISO -> transforms into a date object
-    // startOfHour -> takes only the beginning of the hour, for example 19:30 it takes 19 only.
-
-    if (isBefore(hourStart, new Date())) {
-      // isBefore -> it compares whether the hourStart date is equal to new Date();
-      return res.status(400).json({ error: 'Past dates are not permitted' });
-    }
-
-    const checkAvailability = await Appointment.findOne({
-      where: {
-        provider_id,
-        canceled: null,
-        date: hourStart,
-      },
-    });
-
-    if (checkAvailability) {
-      return res
-        .status(400)
-        .json({ error: 'Appointment date is not available' });
-    }
-
-    const appointment = await Appointment.create({
-      user_id: req.userId,
+    const appointment = await CreateAppointmentService.run({
       provider_id,
-      date: hourStart,
-    });
-
-    const user = await User.findByPk(req.userId);
-
-    const formattedDate = format(
-      hourStart,
-      "' dia' dd 'de' MMMM', às' H:mm'h'",
-      {
-        locale: pt,
-      }
-    );
-
-    await Notification.create({
-      content: `Novo agendamento de ${user.name} para${formattedDate}`,
-      user: provider_id,
+      user_id: req.userId,
+      date,
     });
 
     return res.json(appointment);
@@ -140,11 +73,11 @@ class AppointmentController {
       return res.status(401).json({ error: 'User is a provider.' });
     }
 
-    // if (appointment.user_id !== req.userId) {
-    //   return res.status(401).json({
-    //     error: "You don't have permission to cancel this appointment",
-    //   });
-    // }
+    if (appointment.user_id !== req.userId) {
+      return res.status(401).json({
+        error: "You don't have permission to cancel this appointment",
+      });
+    }
 
     const dateWithSub = subHours(appointment.date, 2);
 

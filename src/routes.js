@@ -12,11 +12,16 @@ import ScheduleController from './app/controllers/ScheduleController';
 import NotificationController from './app/controllers/NotificationController';
 import AvailableController from './app/controllers/AvailableController';
 
+import validateUserStore from './app/validators/UserStore';
+import validateUserUpdate from './app/validators/UserUpdate';
+import validateSessionStore from './app/validators/SessionStore';
+import validateAppointmentStore from './app/validators/AppointmentStore';
+
 const routes = new Router();
 const upload = multer(multerConfig);
 
-routes.post('/users', UserController.store);
-routes.post('/session', SessionController.store);
+routes.post('/users', validateUserStore, UserController.store);
+routes.post('/session', validateSessionStore, SessionController.store);
 
 routes.post(
   '/oauth/google',
@@ -29,11 +34,15 @@ routes.get(
 
 routes.use(authMiddleare);
 
-routes.put('/users', UserController.update);
+routes.put('/users', validateUserUpdate, UserController.update);
 
 routes.post('/files', upload.single('file'), FileController.store);
 
-routes.post('/appointments', AppointmentController.store);
+routes.post(
+  '/appointments',
+  validateAppointmentStore,
+  AppointmentController.store
+);
 routes.get('/appointments', AppointmentController.index);
 routes.delete('/appointments/:id', AppointmentController.delete);
 
