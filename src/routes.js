@@ -35,6 +35,7 @@ routes.get(
 routes.use(authMiddleare);
 
 routes.put('/users', validateUserUpdate, UserController.update);
+routes.get('/users', UserController.index);
 
 routes.post('/files', upload.single('file'), FileController.store);
 

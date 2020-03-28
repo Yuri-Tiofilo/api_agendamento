@@ -1,7 +1,19 @@
-import * as Yup from 'yup';
 import User from '../models/User';
+import Cache from '../../lib/Cache';
 
 class UserController {
+  async index(req, res) {
+    const cached = await Cache.get('users');
+
+    if (cached) {
+      return res.json(cached);
+    }
+    const users = await User.findAll();
+    // service cache (first:name:string, objeto)
+    await Cache.set('users', users);
+    return res.json(users);
+  }
+
   async store(req, res) {
     const userExist = await User.findOne({ where: { email: req.body.email } });
 
@@ -10,6 +22,10 @@ class UserController {
     }
 
     const { id, name, email, provider } = await User.create(req.body);
+
+    if (provider) {
+      await Cache.invalidate('providers');
+    }
 
     return res.json({
       id,
